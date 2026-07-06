@@ -1,26 +1,27 @@
-# AI Language Teacher
+# Open Language Teacher
 
 **English** | [中文](README.zh.md)
 
-> An open-source, local-first AI language teacher you can actually talk to, at your desk and from your phone.
+> An open-source AI language teacher that runs on your own computer, talks out loud, and messages you first.
 
-**Status: alpha. Verified on macOS (Apple Silicon) only. Docs under construction.**
+**Status: alpha. Only tested on macOS (Apple Silicon) so far. Docs are still growing.**
 
 ## Why I built this
 
-I have lived in Japan for four years and passed the JLPT N1 early on. I still cannot speak Japanese naturally. Living inside a language environment does not teach you to speak, and neither does reading well. Second language acquisition research describes this precisely: practice effects are specific to the skill you practice. Comprehension practice improves comprehension, and only production practice improves production (Skill Acquisition Theory; DeKeyser & Suzuki, 2025). If I want to speak, I have to speak.
+I've lived in Japan for four years. I passed the JLPT N1 early on. And I still can't speak Japanese naturally.
 
-So I built someone to speak with: a teacher who has a name, a personality, and a memory of every lesson. She lives on my own machine, talks with me through local open-source voices, and comes to find me every evening to ask about my day. Speaking practice stops being a chore I schedule and becomes something that simply happens.
+It took me a while to admit that nothing I did every day (living here, reading fluently, sitting in lectures) was actually training my speaking. The research on this is pretty blunt: you improve at exactly the skill you practice, not the neighboring ones. Practicing comprehension makes you better at comprehension. Speaking only gets better when you speak (Skill Acquisition Theory; DeKeyser & Suzuki, 2025).
 
-## Features
+But speaking practice needs a partner, and human partners are busy, or expensive, or make you nervous. So I built one. She has a name, and a personality that I wrote myself in a text file. She remembers every lesson we've had. She lives on my own machine and speaks with open-source voices, so no meter is running while we chat. And every evening she messages me first, just to ask what I did today. I answer in Japanese. That's the whole trick, honestly: practice happens because someone starts it.
 
-- 🗣️ **Real voice conversation.** Local Whisper transcription plus multilingual speech synthesis. Desk lessons are push-to-talk.
-- 📱 **Reachable from your phone.** A Discord duty daemon sits in your private channel. Send a voice message and class begins. Polling costs zero LLM tokens.
-- 🌐 **Multilingual teaching persona.** Speak any language to her and she becomes a teacher of that language. Your native language is the one exception: it stays a relaxed channel for chat and explanations. Pace adapts to the level in your profile.
-- 🎭 **Persona as config.** The teacher's name, personality, teaching style, your language profile, textbook progress, and voice cast are all plain Markdown files. Save, and it takes effect on the next utterance.
-- 🔊 **All-local, open-source voices, zero monthly cost.** Japanese via VOICEVOX, English via Kokoro, Chinese and Korean via MeloTTS. Online engines serve only as fallback. Pick voices per language in `config/voices.md`.
-- 🌙 **Evening chats instead of homework.** At a set hour each night the teacher opens the conversation and asks about your day. No nagging, no checking up.
-- 📝 **Lesson memory.** Every exchange is distilled into vocabulary, grammar points, and corrections in `lessons/`. She remembers next time.
+## What she's like
+
+- You talk, she talks back, out loud. Transcription is local Whisper, and each language gets its own voice: Japanese via VOICEVOX, English via Kokoro, Chinese and Korean via MeloTTS. Zero monthly cost.
+- She's on your phone too. A small daemon watches a private Discord channel, so you can send her a voice message from bed and she replies with text plus a voice note.
+- Speak any language to her and she becomes a teacher of that language, pitched at the level you wrote in your profile. Your native language is the exception: that one stays a cozy channel for chatting and explanations, no corrections.
+- Everything about her is a plain Markdown file. Personality, teaching style, your language profile, textbook progress, which voice speaks which language. Edit, save, and she's already different on the next sentence. This is also why the project is called Open: the voices are open source, the brain can be open source, and the teacher herself is completely open to being rewritten by you.
+- Lessons leave notes. New words, grammar points, and corrections all land in `lessons/`, and she reads them back later, so asking "what did we learn last week?" actually works.
+- My favorite part is the evening chat. At whatever hour you set, she opens the conversation and asks about your day. No homework, no streaks, no guilt. If you don't answer tonight, she just tries again tomorrow.
 
 ## Quick start
 
@@ -44,33 +45,32 @@ repo/
   lessons/           ← your lesson logs (auto-generated, never committed)
 ```
 
-## The brain: three providers
+## The brain
 
-Set `BRAIN_PROVIDER` in `.env`:
+Three ways to give her a mind. Set `BRAIN_PROVIDER` in `.env`:
 
-- **claude-code**: your own Claude Code CLI. First-party, within your subscription, fullest feature set.
+- **claude-code**: your own Claude Code CLI. First-party, runs within your subscription, and it's the only mode with web search.
 - **api**: your own Anthropic API key.
-- **ollama**: a local model. Fully offline and free.
+- **ollama**: a local model. Free and fully offline.
 
-This project does not and will never piggyback on anyone's subscription through unofficial third-party channels.
+All three are front doors. This project never sneaks into anyone's subscription through a back door.
 
 ## Security
 
-See [SECURITY.md](SECURITY.md). Core principles: config is data, not code · least-privilege brain · secrets never enter the repo · chat channel denies strangers by default.
+See [SECURITY.md](SECURITY.md). The short version: configs are data, not code. The brain can only read and search. Secrets never enter the repo. The chat channel ignores everyone but you.
 
 ## Docs
 
 - [Discord bot setup, step by step](docs/discord-setup.md)
 - [FAQ](docs/faq.md)
-- [Known issues / battle scars](docs/known-issues.md) (Chinese; English translation planned)
+- [Known issues / battle scars](docs/known-issues.md) (Chinese for now, English translation planned)
 
 ## Credits
 
-- Voices: [VOICEVOX](https://voicevox.hiroshiba.jp/) (observe each character's terms of use), [Kokoro](https://huggingface.co/hexgrad/Kokoro-82M), [MeloTTS](https://github.com/myshell-ai/MeloTTS)
+- Voices: [VOICEVOX](https://voicevox.hiroshiba.jp/) (mind each character's terms of use), [Kokoro](https://huggingface.co/hexgrad/Kokoro-82M), [MeloTTS](https://github.com/myshell-ai/MeloTTS)
 - Transcription: [mlx-whisper](https://github.com/ml-explore/mlx-examples)
-- Design philosophy inspired by [OpenClaw](https://openclaw.ai)'s workspace-as-markdown approach
+- The workspace-as-markdown idea came from playing with [OpenClaw](https://openclaw.ai)
 
 ## License
 
-[MIT](LICENSE) © 2026 Chen Ying. Voice engines and characters keep their own terms
-(for example, VOICEVOX character voices); this license covers the code in this repository.
+[MIT](LICENSE) © 2026 Chen Ying. Voice engines and characters keep their own terms (VOICEVOX character voices, for example); this license covers the code in this repository.
