@@ -42,3 +42,13 @@ def env(key, default=""):
 def env_path(key, default=""):
     v = env(key, default)
     return pathlib.Path(v).expanduser() if v else None
+
+
+def extra_rules():
+    """config/protocol.md 里「## 追加ルール」之后的部分（用户的自由加料区）。"""
+    try:
+        text = (CONFIG / "protocol.md").read_text()
+        _, _, tail = text.partition("## 追加ルール")
+        return tail.strip()
+    except Exception:
+        return ""

@@ -16,6 +16,7 @@ import subprocess
 import sys
 import time
 
+import brain
 import common
 
 CHANNEL = common.env("DISCORD_CHANNEL_ID")
@@ -23,7 +24,6 @@ OWNER = common.env("DISCORD_OWNER_ID")
 TOK = common.env("DISCORD_BOT_TOKEN")
 TEACHER_NAME = common.env("TEACHER_NAME", "先生")
 CLAUDE_MODEL = common.env("CLAUDE_MODEL", "sonnet")
-CLAUDE_BIN = common.env("CLAUDE_BIN") or shutil.which("claude")
 
 HERE = pathlib.Path(__file__).resolve().parent
 PIPE = HERE / "pipeline.py"
@@ -52,6 +52,9 @@ def persona():
             pass
     if not parts:
         parts = ["あなたは優しい言語の先生です。生徒に短く自然な話し言葉で答えます。"]
+    extra = common.extra_rules()
+    if extra:
+        parts.append("【追加ルール】\n" + extra)
     return "\n\n".join(parts) + FORMAT_RULES
 
 
@@ -115,21 +118,10 @@ def tts(text, out):
 
 
 def think(text, st):
-    cmd = [CLAUDE_BIN, "-p", text, "--model", CLAUDE_MODEL,
-           "--allowedTools", "WebSearch", "WebFetch", "Read",
-           "--append-system-prompt", persona()]
-    if st.get("claude_started"):
-        cmd.append("--continue")
-    r = subprocess.run(cmd, capture_output=True, text=True, timeout=300,
-                       cwd=str(DUTY_CWD))
-    reply = r.stdout.strip()
-    if not reply and st.get("claude_started"):
-        cmd.remove("--continue")
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=300,
-                           cwd=str(DUTY_CWD))
-        reply = r.stdout.strip()
-    st["claude_started"] = True
-    return reply or "ごめんなさい、ちょっと調子が悪いみたい。もう一度話しかけてくれますか？◆メモ\nなし"
+    # 大脑走 brain.py 三通道 (claude-code / api / ollama, 由 .env 的 BRAIN_PROVIDER 定)
+    return brain.think(text, persona(), session="duty", st=st,
+                       model=CLAUDE_MODEL,
+                       tools=("WebSearch", "WebFetch", "Read"), cwd=DUTY_CWD)
 
 
 def split_reply(raw):
@@ -188,8 +180,10 @@ def main():
                      ("DISCORD_OWNER_ID", OWNER)):
         if not val:
             sys.exit(f"缺配置：请在仓库根 .env 里填 {key}（样板见 .env.example）")
-    if not CLAUDE_BIN:
-        sys.exit("找不到 claude 命令：装 Claude Code，或在 .env 里配 CLAUDE_BIN")
+    if brain.PROVIDER == "claude-code" and not (common.env("CLAUDE_BIN")
+                                                or shutil.which("claude")):
+        sys.exit("找不到 claude 命令：装 Claude Code、在 .env 配 CLAUDE_BIN，"
+                 "或把 BRAIN_PROVIDER 换成 api / ollama")
     DUTY_CWD.mkdir(parents=True, exist_ok=True)
     st = load_state()
     if "last_id" not in st:

@@ -23,22 +23,29 @@
 
 ## 快速开始
 
-> ⚠️ 安装向导（出生仪式）正在开发中。目前需要手动安装：见 `setup/README.md`。
-> 踩坑必读：`docs/known-issues.md`（尤其是 MeloTTS 韩语的 MeCab 冲突）。
+```bash
+# 1. 装依赖与声音引擎（见 setup/README.md；踩坑必读 docs/known-issues.md）
+# 2. 出生仪式：采访几个问题，你的老师就此诞生 🐣
+python3 setup/birth.py
+# 3. 开课
+~/.venvs/ai-teacher/bin/python engine/desktop_class.py   # 电脑口语课
+python3 setup/services.py                                # 常驻服务与夜谈定时器
+```
 
 ```
 repo/
-  config/examples/   ← 把这些复制到 config/ 并填成你自己的（人设·画像·课程·夜谈·声优）
-  engine/            ← 管线·值班员·夜谈·电脑课·MeloTTS 服务
-  setup/             ← 依赖清单与安装说明（向导施工中）
+  setup/             ← 出生仪式向导 birth.py · 服务安装器 services.py · 依赖清单
+  config/examples/   ← 配置样板（出生仪式会替你生成正式版到 config/）
+  engine/            ← 大脑三通道·管线·值班员·夜谈·电脑课·MeloTTS 服务
+  audition/          ← 声优海选工具（audition.py <语言>）
   deploy/launchd/    ← macOS 常驻服务模板
   docs/              ← 踩坑与专题文档
   lessons/           ← 你的课堂记录（自动生成，不入库）
 ```
 
-## 大脑（LLM）接入
+## 大脑（LLM）三通道
 
-目前走 **Claude Code**（第一方 CLI，订阅内合规使用）。API key 与本地模型（Ollama）通道在路线图上。本项目不做、也永远不会做任何「订阅搭车」式的第三方接入。
+`.env` 的 `BRAIN_PROVIDER` 三选一：**claude-code**（你自己的 Claude Code，第一方 CLI 订阅内合规，功能最全）· **api**（你自己的 Anthropic API key）· **ollama**（本地模型，零成本全离线）。本项目不做、也永远不会做任何「订阅搭车」式的第三方接入。
 
 ## 安全
 

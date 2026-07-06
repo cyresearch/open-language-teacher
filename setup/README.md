@@ -1,6 +1,7 @@
-# 安装（手动版）
+# 安装
 
-> 自动化安装向导（出生仪式）正在开发中。以下是 macOS (Apple Silicon) 的手动步骤。
+> 顺序：先装依赖与声音引擎（下面 0-2 节）→ 然后跑**出生仪式** `python3 setup/birth.py`
+> （采访生成老师人设、学生画像、.env）→ 最后 `python3 setup/services.py` 排常驻服务。
 > 建议先通读 `docs/known-issues.md`，尤其要装韩语的话。
 
 ## 0. 系统依赖
@@ -36,16 +37,22 @@ uv pip install --python ~/.venvs/ai-teacher/bin/python -r setup/requirements/mai
   # 然后按 docs/known-issues.md 第 1 条做三针手术（必需！）
   ```
 
-## 3. 配置
+## 3. 配置（二选一）
 
 ```bash
-cp .env.example .env            # 填空
+python3 setup/birth.py           # 推荐：出生仪式（采访 → 生成全套配置 + .env）
+# 或者手动：
+cp .env.example .env             # 填空
 cp config/examples/*.md config/  # 逐份改成你自己的
 ```
 
 ## 4. 常驻服务（macOS launchd）
 
-按 `deploy/launchd/README.md` 渲染并加载：VOICEVOX、MeloTTS 中/韩服务、Discord 值班员、夜谈定时器。
+```bash
+python3 setup/services.py   # 渲染 plist + 给出装载命令（VOICEVOX/Melo/值班员/夜谈）
+```
+
+手工方式见 `deploy/launchd/README.md`。声优不合口味？`python3 audition/audition.py <ja|en|zh|ko>` 一键海选。
 
 ## 5. 开课
 

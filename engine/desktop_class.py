@@ -9,7 +9,6 @@ import datetime
 import json
 import pathlib
 import shutil
-import subprocess
 import sys
 import time
 
@@ -17,13 +16,14 @@ import numpy as np
 import sounddevice as sd
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import brain
 import common
 from pipeline import SR as PSR
 from pipeline import WHISPER_REPO, ensure_engine, split_sentences, synth_sentence
 
 CLAUDE_MODEL = common.env("DESKTOP_CLAUDE_MODEL", "haiku")  # 面对面对话求快
-CLAUDE_BIN = common.env("CLAUDE_BIN") or shutil.which("claude")
 LESSONS = common.LESSONS
+_st = {}  # 本堂课的会话状态（每次启动新开一条会话线）
 SAMPLE_RATE = 16000
 DEVCFG = common.RUNTIME / "desktop.json"
 
@@ -37,6 +37,9 @@ def persona():
             pass
     if not parts:
         parts = ["あなたは優しい言語の先生です。生徒に短く自然な話し言葉で答えます。"]
+    extra = common.extra_rules()
+    if extra:
+        parts.append("【追加ルール】\n" + extra)
     rules = ("\n【入力】生徒の発話は音声認識の文字起こしで、誤字がありえます。文脈で判断する。"
              "【出力】必ず1〜3文の短い話し言葉。読み上げられるので絵文字・記号・箇条書き・マークダウン禁止。")
     return "\n\n".join(parts) + rules
@@ -113,17 +116,11 @@ def transcribe(audio):
     return result["text"].strip()
 
 
-def think(text, first_turn):
-    cmd = [CLAUDE_BIN, "-p", text, "--model", CLAUDE_MODEL,
-           "--append-system-prompt", persona()]
-    if not first_turn:
-        cmd.append("--continue")
-    r = subprocess.run(cmd, capture_output=True, text=True, timeout=120,
-                       cwd=str(pathlib.Path(__file__).resolve().parent))
-    reply = r.stdout.strip()
-    if not reply:
-        reply = "ごめんなさい、ちょっと聞こえませんでした。もう一度お願いします。"
-    return reply
+def think(text):
+    # 大脑走 brain.py 三通道 (claude-code / api / ollama)
+    return brain.think(text, persona(), session="desktop", st=_st,
+                       model=CLAUDE_MODEL,
+                       cwd=pathlib.Path(__file__).resolve().parent)
 
 
 def speak(text, device=None):
@@ -147,8 +144,10 @@ def speak(text, device=None):
 
 
 def main():
-    if not CLAUDE_BIN:
-        sys.exit("找不到 claude 命令：装 Claude Code，或在 .env 里配 CLAUDE_BIN")
+    if brain.PROVIDER == "claude-code" and not (common.env("CLAUDE_BIN")
+                                                or shutil.which("claude")):
+        sys.exit("找不到 claude 命令：装 Claude Code、在 .env 配 CLAUDE_BIN，"
+                 "或把 BRAIN_PROVIDER 换成 api / ollama")
     ensure_engine()
     out_dev = resolve_output_device(
         force_pick=(len(sys.argv) > 1 and sys.argv[1] == "device"))
@@ -163,7 +162,6 @@ def main():
     print(f"  课堂记录：{log}")
     print("=" * 46)
 
-    first = True
     try:
         while True:
             audio = record()
@@ -177,8 +175,7 @@ def main():
                 print("   （没听清，再说一次？）")
                 continue
             print(f"\n私: {user_text}")
-            reply = think(user_text, first)
-            first = False
+            reply = think(user_text)
             t2 = time.time()
             print(f"先生: {reply}")
             first_audio_at = speak(reply, out_dev)
