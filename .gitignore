@@ -1,0 +1,16 @@
+# 密钥与机器配置：永不入库
+.env
+
+# 用户的私人实例：人设、课堂记录、运行时状态都只住本机
+config/*.md
+!config/examples
+lessons/
+runtime/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# macOS
+.DS_Store

@@ -1,0 +1,4 @@
+# MeloTTS 韩语 venv（Python 3.11；必须与中文 venv 分开！）
+# 装完必须按 docs/known-issues.md 第 1 条做三针手术，否则跑不起来
+git+https://github.com/myshell-ai/MeloTTS.git
+python-mecab-ko

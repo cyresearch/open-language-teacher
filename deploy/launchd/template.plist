@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>__LABEL__</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>__PYTHON__</string>
+        <string>__ARGS__</string>
+    </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:__CLAUDE_DIR__</string>
+    </dict>
+    <key>RunAtLoad</key>
+    <true/>
+    <!-- 常驻服务用 KeepAlive；定时任务（如夜谈）删掉 KeepAlive，换成：
+    <key>StartCalendarInterval</key>
+    <dict><key>Hour</key><integer>21</integer><key>Minute</key><integer>0</integer></dict>
+    -->
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/tmp/__LABEL__.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/__LABEL__.log</string>
+</dict>
+</plist>

@@ -1,0 +1,6 @@
+# 主 venv：听写 + 英语声 + 兜底 + 电脑课（Python 3.12）
+mlx-whisper
+kokoro-onnx
+sounddevice
+numpy
+edge-tts

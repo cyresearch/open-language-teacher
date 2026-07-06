@@ -1,0 +1,5 @@
+# MeloTTS 中文 venv（Python 3.11！3.12 会撞老 tokenizers 的编译坑）
+# 系统依赖：brew install mecab
+git+https://github.com/myshell-ai/MeloTTS.git
+mecab-python3
+unidic-lite
