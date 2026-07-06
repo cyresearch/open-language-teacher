@@ -1,4 +1,4 @@
-# AI 语言老师（仓库名待定）
+# AI 语言老师 · AI Language Teacher
 
 [English](README.md) | **中文**
 
@@ -66,4 +66,4 @@ repo/
 
 ## License
 
-待定（将在首个公开版本前确定）。
+[MIT](LICENSE) © 2026 Chen Ying。语音引擎与角色声音各有自己的使用条款（比如 VOICEVOX 的角色声音），本许可证只覆盖本仓库的代码。

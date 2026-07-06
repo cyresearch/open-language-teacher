@@ -1,4 +1,4 @@
-# AI Language Teacher (name TBD)
+# AI Language Teacher
 
 **English** | [中文](README.zh.md)
 
@@ -72,4 +72,5 @@ See [SECURITY.md](SECURITY.md). Core principles: config is data, not code · lea
 
 ## License
 
-TBD (will be settled before the first public release).
+[MIT](LICENSE) © 2026 Chen Ying. Voice engines and characters keep their own terms
+(for example, VOICEVOX character voices); this license covers the code in this repository.
