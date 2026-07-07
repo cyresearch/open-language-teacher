@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Discord 值班员：常驻守信箱，让老师从手机随叫随到。
 
-流程：学生的语音/文字 → 听写(本地 Whisper) → claude -p（小上下文+搜索权限）
-      → 回复拆成「口语部分→多语言合成朗读」+「◆メモ→课堂笔记」 → 回信 → 记 lessons/
-设计：轮询 0 token（本地 curl 带退避 5s/20s/60s）；只在真有消息时花一次小请求。
+流程：学生的语音/文字/手写图片 → 听写(本地 Whisper)、图片交给大脑看图
+      → 回复拆成「口语部分」+「◆メモ→课堂笔记」 → 文字先回、语音条跟上 → 记 lessons/
+设计：轮询 0 token（本地 curl 带退避 5s/10s/20s）；只在真有消息时花一次大脑请求；
+      思考期间每 8 秒续一次「正在输入」，学生知道消息已接单。
 配置：.env 里的 DISCORD_BOT_TOKEN / DISCORD_CHANNEL_ID / DISCORD_OWNER_ID（见 .env.example）。
 用法：duty_daemon.py [--announce]   （不会自己退出，杀掉即下班）
 """
@@ -14,6 +15,7 @@ import re
 import shutil
 import subprocess
 import sys
+import threading
 import time
 
 import brain
@@ -124,6 +126,23 @@ def think(text, st):
                        tools=("WebSearch", "WebFetch", "Read"), cwd=DUTY_CWD)
 
 
+def think_with_typing(text, st):
+    # 思考期间每 8 秒续一次「正在输入」(指示器约 10 秒灭), 学生知道老师还在想
+    stop = threading.Event()
+
+    def keepalive():
+        while not stop.wait(8):
+            typing()
+
+    typing()
+    t = threading.Thread(target=keepalive, daemon=True)
+    t.start()
+    try:
+        return think(text, st)
+    finally:
+        stop.set()
+
+
 def split_reply(raw):
     spoken, _, notes = raw.partition("◆メモ")
     notes = notes.strip().lstrip("：:").strip()
@@ -146,8 +165,10 @@ def lesson_log(user_text, spoken, notes):
 
 def handle(m, st):
     text = (m.get("content") or "").strip()
+    images = []
     for att in m.get("attachments", []):
-        if (att.get("content_type") or "").startswith("audio"):
+        ct = att.get("content_type") or ""
+        if ct.startswith("audio"):
             typing()
             INBOX.mkdir(parents=True, exist_ok=True)
             dst = INBOX / f"{m['id']}.ogg"
@@ -156,23 +177,39 @@ def handle(m, st):
             heard = stt(str(dst))
             if heard:
                 text = (text + " " + heard).strip()
-    if not text:
+        elif ct.startswith("image") or ct == "application/pdf":
+            # 手写练习/笔记照片: 存下来让大脑用 Read 亲眼看
+            typing()
+            INBOX.mkdir(parents=True, exist_ok=True)
+            suffix = pathlib.Path(att.get("filename") or "").suffix or ".png"
+            dst = INBOX / f"{m['id']}_{att['id']}{suffix}"
+            subprocess.run(["curl", "-s", "-L", "--max-time", "60",
+                            "-o", str(dst), att["url"]], timeout=90, check=True)
+            images.append(dst)
+    if not text and not images:
         return
-    typing()
-    log("heard:", text[:70])
-    spoken, notes = split_reply(think(text, st))
-    typing()
+    shown = text if not images else \
+        (f"{text}（+画像{len(images)}枚）" if text else "（画像を送りました）")
+    ask = text
+    if images:
+        ask += ("\n【画像】生徒が画像を送りました。Read で開いて内容を読み取ってください。"
+                "手書きの練習なら、まず読めた内容を確認してから添削・フィードバックを：\n"
+                + "\n".join(str(p) for p in images))
+        ask = ask.strip()
+    log("heard:", shown[:70])
+    spoken, notes = split_reply(think_with_typing(ask, st))
     log("reply:", spoken[:70])
-    voice = None
-    try:
-        voice = tts(spoken, str(INBOX / f"reply_{m['id']}.ogg"))
-    except Exception as e:
-        log("tts failed:", e)
-    msg = f"🎤 私：「{text}」\n\n👩‍🏫 {TEACHER_NAME}：「{spoken}」"
+    msg = f"🎤 私：「{shown}」\n\n👩‍🏫 {TEACHER_NAME}：「{spoken}」"
     if notes:
         msg += f"\n\n📝 **今日のメモ**\n{notes}"
-    send(msg, voice, m["id"])
-    lesson_log(text, spoken, notes)
+    send(msg, None, m["id"])  # 文字先行, 不等语音合成
+    typing()
+    try:
+        voice = tts(spoken, str(INBOX / f"reply_{m['id']}.ogg"))
+        send("", voice)  # 语音条随后跟上
+    except Exception as e:
+        log("tts failed:", e)
+    lesson_log(shown, spoken, notes)
 
 
 def main():
@@ -196,7 +233,7 @@ def main():
     last_activity = time.time()
     while True:
         idle = time.time() - last_activity
-        interval = 5 if idle < 600 else (20 if idle < 3600 else 60)
+        interval = 5 if idle < 600 else (10 if idle < 3600 else 20)
         try:
             msgs = dget(f"/channels/{CHANNEL}/messages?after={st['last_id']}&limit=5")
         except Exception as e:

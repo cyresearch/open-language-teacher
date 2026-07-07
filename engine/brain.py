@@ -8,9 +8,11 @@
 
 本项目绝不做任何「订阅搭车」式第三方接入——三条通道全部是正规门。
 """
+import datetime
 import json
 import shutil
 import subprocess
+import time
 import urllib.request
 
 import common
@@ -39,11 +41,27 @@ def think(text, persona, *, session="duty", st=None, model=None,
 
 # ---------- 通道 1：Claude Code ----------
 
+def _session_rolled_over(last_ts):
+    """跨天且闲置超 4 小时 → 该开新会话了（半夜聊到一半不砍断）。
+
+    --continue 的会话历史只增不减，放任不管会越聊越慢；按日翻篇给延迟
+    加了上限，跨会话的连续性靠 lessons/ 的课堂笔记兜底（老师可 Read）。
+    """
+    if not last_ts:
+        return False
+    gap = time.time() - last_ts
+    same_day = datetime.date.fromtimestamp(last_ts) == datetime.date.today()
+    return gap > 4 * 3600 and not same_day
+
+
 def _claude_code(text, persona, session, st, model, tools, cwd):
     binpath = common.env("CLAUDE_BIN") or shutil.which("claude")
     if not binpath:
         raise RuntimeError("找不到 claude 命令（装 Claude Code 或在 .env 配 CLAUDE_BIN）")
     key = "claude_started" if session == "duty" else f"claude_started_{session}"
+    ts_key = key.replace("claude_started", "claude_last_ts")
+    if st.get(key) and _session_rolled_over(st.get(ts_key)):
+        st[key] = False
     cmd = [binpath, "-p", text,
            "--model", model or common.env("CLAUDE_MODEL", "sonnet"),
            "--append-system-prompt", persona]
@@ -60,6 +78,7 @@ def _claude_code(text, persona, session, st, model, tools, cwd):
                            cwd=str(cwd) if cwd else None)
         reply = r.stdout.strip()
     st[key] = True
+    st[ts_key] = time.time()
     return reply
 
 
