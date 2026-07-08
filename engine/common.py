@@ -3,6 +3,7 @@
 所有机器相关的路径/密钥都住在仓库根的 `.env`（gitignore，永不入库），
 样板见 `.env.example`。代码里不允许出现任何写死的个人路径。
 """
+import datetime
 import os
 import pathlib
 
@@ -42,6 +43,22 @@ def env(key, default=""):
 def env_path(key, default=""):
     v = env(key, default)
     return pathlib.Path(v).expanduser() if v else None
+
+
+def now_local():
+    """当前时间，按 .env 的 TIMEZONE（IANA 名，如 Asia/Tokyo）；没配就跟随系统时区。
+
+    老师的时间感（早晚问候）、lessons 的时间戳与天数划分都以此为准，这样即使
+    机器时区和你居住地不一致，也能对齐你居住地的时间。返回 tz-aware datetime。
+    """
+    tzname = env("TIMEZONE")
+    if tzname:
+        try:
+            from zoneinfo import ZoneInfo
+            return datetime.datetime.now(ZoneInfo(tzname))
+        except Exception:
+            pass
+    return datetime.datetime.now().astimezone()
 
 
 def extra_rules():

@@ -4,7 +4,6 @@
 开场白由老师带着课堂记忆现场生成，不是固定台词。规则详见 config/evening-chat.md。
 用法：nightly.py [--dry]   （--dry 只打印不发送，测试用）
 """
-import datetime
 import pathlib
 import sys
 
@@ -25,7 +24,8 @@ SUNDAY_PROMPT = (
 
 def main():
     dry = "--dry" in sys.argv
-    prompt = SUNDAY_PROMPT if datetime.date.today().weekday() == 6 else WEEKDAY_PROMPT
+    now = dd.common.now_local()
+    prompt = SUNDAY_PROMPT if now.weekday() == 6 else WEEKDAY_PROMPT
     st = dd.load_state()
     raw = dd.think(prompt, st)
     dd.save_state(st)
@@ -34,7 +34,7 @@ def main():
         print("DRY:", spoken)
         return
     dd.INBOX.mkdir(parents=True, exist_ok=True)
-    ogg = str(dd.INBOX / f"nightly_{datetime.date.today().isoformat()}.ogg")
+    ogg = str(dd.INBOX / f"nightly_{now.date().isoformat()}.ogg")
     voice = None
     try:
         voice = dd.tts(spoken, ogg)

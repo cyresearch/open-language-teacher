@@ -44,12 +44,38 @@ def section(title):
     print(f"\n{'─' * 46}\n  {title}\n{'─' * 46}")
 
 
+def default_tz():
+    # 从 /etc/localtime 的符号链接反推系统时区名（macOS/Linux 通用），失败给个东京
+    try:
+        import os
+        p = os.path.realpath("/etc/localtime")
+        if "zoneinfo/" in p:
+            return p.split("zoneinfo/", 1)[1]
+    except Exception:
+        pass
+    return "Asia/Tokyo"
+
+
+def ask_timezone():
+    d = default_tz()
+    while True:
+        tz = ask("你常住的时区（IANA 名，如 Asia/Tokyo / America/New_York；"
+                 "老师据此判断早晚问候、给课堂记录打时间戳）", d)
+        try:
+            from zoneinfo import ZoneInfo
+            ZoneInfo(tz)
+            return tz
+        except Exception:
+            print(f"  ⚠ 「{tz}」不是有效的时区名，请用 IANA 格式（例：Asia/Shanghai）。")
+
+
 def interview():
     a = {}
     section("① 你自己")
     a["student_name"] = ask("怎么称呼你（写进档案的名字）", "（学生）")
     a["student_bio"] = ask("一两句自我介绍（住哪/做什么，老师聊天会用到，可跳过）")
     a["native"] = ask("你的母语是什么", "中文")
+    a["timezone"] = ask_timezone()
 
     section("② 你要学的语言（老师会按语言切换教学模式）")
     a["target"] = ask("主修语言（老师的默认语言）", "日语")
@@ -258,7 +284,8 @@ def main():
 
     a = interview()
     env_updates = {"TEACHER_NAME": a["teacher_name"],
-                   "NIGHTLY_TIME": a["nightly"]}
+                   "NIGHTLY_TIME": a["nightly"],
+                   "TIMEZONE": a["timezone"]}
     env_updates.update(pick_brain())
     env_updates.update(pick_discord())
 

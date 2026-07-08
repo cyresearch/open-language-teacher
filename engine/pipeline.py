@@ -89,10 +89,28 @@ def ensure_engine():
     sys.exit("VOICEVOX engine did not come up")
 
 
+def _collapse_repeats(text):
+    """压掉 Whisper 结尾的重复幻觉：同一短语连续重复 3 次以上就压回 2 次。
+
+    Whisper 在录音结尾的静音/呼吸段容易陷入重复循环（例：「買った道で」刷屏），
+    是解码层的已知毛病。stt() 关掉 condition_on_previous_text 已能大幅减少，
+    这里对漏网的连续重复再兜一道底。单元最长 40 字，避免长串正则回溯拖慢。
+    """
+    if not text:
+        return text
+    return re.sub(r"(.{1,40}?)\1{2,}", lambda m: m.group(1) * 2, text)
+
+
 def stt(path):
     import mlx_whisper
-    result = mlx_whisper.transcribe(path, path_or_hf_repo=WHISPER_REPO)
-    print(result["text"].strip())
+    # condition_on_previous_text=False：不把已输出的文本喂回下一段解码，
+    # 斩断「越重复越重复」的反馈循环（Whisper 结尾重复幻觉的主因）。
+    # 温度回退 (0→1) + 压缩比阈值 2.4 走默认：重复度过高的解码会自动换温度重来。
+    result = mlx_whisper.transcribe(
+        path, path_or_hf_repo=WHISPER_REPO,
+        condition_on_previous_text=False,
+    )
+    print(_collapse_repeats(result["text"].strip()))
 
 
 def detect_lang(s):

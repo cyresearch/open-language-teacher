@@ -45,6 +45,16 @@ FORMAT_RULES = (
 )
 
 
+def time_note():
+    # 老师的时间感全靠这里注入: CLI 只给日期不给钟点, 不注入就会把早上当晚上
+    now = common.now_local()
+    wd = "月火水木金土日"[now.weekday()]
+    return (f"\n【今の日時】{now.strftime('%Y-%m-%d')}（{wd}曜）{now.strftime('%H:%M')}"
+            f"（{now.strftime('%Z')}）。挨拶や時間帯の判断は必ずこの時刻に合わせる"
+            f"（朝＝おはよう、昼＝こんにちは、夕方・夜＝こんばんは）。"
+            f"これはシステム情報。返事に書かない・読み上げない。")
+
+
 def persona():
     parts = []
     for name in ("teacher.md", "student.md", "curriculum.md"):
@@ -57,11 +67,11 @@ def persona():
     extra = common.extra_rules()
     if extra:
         parts.append("【追加ルール】\n" + extra)
-    return "\n\n".join(parts) + FORMAT_RULES
+    return "\n\n".join(parts) + FORMAT_RULES + time_note()
 
 
 def log(*a):
-    print(datetime.datetime.now().strftime("%H:%M:%S"), *a, flush=True)
+    print(common.now_local().strftime("%H:%M:%S"), *a, flush=True)
 
 
 def dget(path):
@@ -153,11 +163,12 @@ def split_reply(raw):
 
 def lesson_log(user_text, spoken, notes):
     LESSONS.mkdir(parents=True, exist_ok=True)
-    f = LESSONS / f"{datetime.date.today().isoformat()}-lesson.md"
-    stamp = datetime.datetime.now().strftime("%H:%M")
+    now = common.now_local()
+    f = LESSONS / f"{now.date().isoformat()}-lesson.md"
+    stamp = now.strftime("%H:%M")
     with f.open("a") as fh:
         if not f.exists() or f.stat().st_size == 0:
-            fh.write(f"# 口语课 {datetime.date.today().isoformat()}\n\n")
+            fh.write(f"# 口语课 {now.date().isoformat()}\n\n")
         fh.write(f"**私** ({stamp} 手机): {user_text}\n\n**先生**: {spoken}\n\n")
         if notes:
             fh.write(f"{notes}\n\n")
