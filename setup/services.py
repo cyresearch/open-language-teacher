@@ -24,7 +24,8 @@ def ask(prompt, default=""):
     return val or default
 
 
-def plist(label, args, nightly=None, path_extra=""):
+def plist(label, args, at=None, path_extra=""):
+    # at="HH:MM" → 每天定时触发一次; 不给 → 常驻服务(KeepAlive)
     d = {
         "Label": label,
         "ProgramArguments": args,
@@ -35,9 +36,10 @@ def plist(label, args, nightly=None, path_extra=""):
             "PATH": "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin"
                     + (f":{path_extra}" if path_extra else "")},
     }
-    if nightly:
-        h, m = nightly.split(":")
+    if at:
+        h, m = at.split(":")
         d["StartCalendarInterval"] = {"Hour": int(h), "Minute": int(m)}
+        d["RunAtLoad"] = False  # 定时任务只按点触发, 装载时不立刻跑一次
     else:
         d["KeepAlive"] = True
     return d
@@ -55,6 +57,7 @@ def main():
     zh_py = ask("MeloTTS 中文 venv 的 python", f"{home}/.venvs/melo/bin/python")
     ko_py = ask("MeloTTS 韩语 venv 的 python", f"{home}/.venvs/melo-ko/bin/python")
     nightly = common.env("NIGHTLY_TIME", "21:00")
+    morning = common.env("MORNING_TIME")  # 留空 = 不要早间新闻
     claude_dir = ""
     import shutil
     c = common.env("CLAUDE_BIN") or shutil.which("claude") or ""
@@ -87,9 +90,14 @@ def main():
             services.append((f"{PREFIX}.nightly",
                              plist(f"{PREFIX}.nightly",
                                    [mp, str(ROOT / "engine/nightly.py")],
-                                   nightly=nightly, path_extra=claude_dir)))
+                                   at=nightly, path_extra=claude_dir)))
+            if morning:
+                services.append((f"{PREFIX}.morning",
+                                 plist(f"{PREFIX}.morning",
+                                       [mp, str(ROOT / "engine/morning_news.py")],
+                                       at=morning, path_extra=claude_dir)))
         else:
-            print("  （.env 没配 Discord —— 跳过值班员与夜谈服务）")
+            print("  （.env 没配 Discord —— 跳过值班员与夜谈/早间新闻服务）")
 
     if not services:
         sys.exit("没有可渲染的服务（路径都不存在？）")

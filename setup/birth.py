@@ -98,6 +98,11 @@ def interview():
     a["nickname"] = ask("老师对你的专属爱称（例：ハニー / 宝宝 / sweetie）", "ハニー")
     a["city"] = ask("给老师一个居住城市的设定（可跳过）")
     a["nightly"] = ask("夜谈时间（老师每晚主动来找你聊天）", "21:00")
+    a["morning"] = ask("早间新闻时间（老师现查当天新闻，用学习语言讲给你听；输入 0 关闭）", "09:00")
+    if a["morning"] in ("0", "关闭", "off"):
+        a["morning"] = ""
+    a["news"] = ask("新闻领域偏好（老师只挑这些领域讲）", "世界大事（国际重要新闻）") \
+        if a["morning"] else ""
     return a
 
 
@@ -249,6 +254,27 @@ def build_student_md(a):
 """
 
 
+def build_morning_news_md(a):
+    return f"""# 早间新闻 · 配置
+
+> 老师每天早上主动来给你讲当天的新闻（时间在 .env 的 `MORNING_TIME`，留空＝关闭）。
+> 讲什么领域由本文件决定：老师每次现读，改完保存即生效。
+
+## 感兴趣的新闻领域
+
+- {a['news']}
+
+（想换就改上面这里。可以写多个领域，也可以写得很具体，比如：
+科技 / AI、体育、财经、你所在城市的本地新闻、某支球队的比赛结果……）
+
+## 播报规则
+
+- 新闻必须是 WebSearch 现查的，不编造；查不到就只道早安
+- 用学习语言短短地讲 1〜2 条，难词换成简单说法，生词记进◆メモ
+- 结尾轻轻抛一个问题，让你有话想接——这是晨读小课，不是广播
+"""
+
+
 def polish_with_brain(md, a):
     print("\n  ✨ 检测到 Claude Code——要不要让大脑给人设润色、添点灵魂？")
     if ask("润色吗 y/N", "N").lower() != "y":
@@ -308,6 +334,7 @@ def main():
     a = interview()
     env_updates = {"TEACHER_NAME": a["teacher_name"],
                    "NIGHTLY_TIME": a["nightly"],
+                   "MORNING_TIME": a["morning"],
                    "TIMEZONE": a["timezone"]}
     env_updates.update(pick_brain())
     env_updates.update(pick_discord())
@@ -321,6 +348,8 @@ def main():
     cfg.mkdir(parents=True, exist_ok=True)
     (cfg / "teacher.md").write_text(teacher_md)
     (cfg / "student.md").write_text(build_student_md(a))
+    if a["morning"]:
+        (cfg / "morning-news.md").write_text(build_morning_news_md(a))
     for name in ("curriculum.md", "evening-chat.md", "voices.md", "protocol.md"):
         src = EXAMPLES / name
         if src.exists() and not (cfg / name).exists():
@@ -330,7 +359,7 @@ def main():
   ✅ {a['teacher_name']} 诞生了！写好的档案：
      config/teacher.md      ← 老师人设（随时可改）
      config/student.md      ← 你的语言画像
-     config/{{curriculum,evening-chat,voices,protocol}}.md ← 课程/夜谈/声优/手册
+     config/{{curriculum,evening-chat,morning-news,voices,protocol}}.md ← 课程/夜谈/早间新闻/声优/手册
      .env                   ← 大脑与通道配置
 
   下一步：
