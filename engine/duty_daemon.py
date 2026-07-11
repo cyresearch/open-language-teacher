@@ -20,6 +20,7 @@ import time
 
 import brain
 import common
+import ideal_self
 
 CHANNEL = common.env("DISCORD_CHANNEL_ID")
 OWNER = common.env("DISCORD_OWNER_ID")
@@ -67,7 +68,10 @@ def persona():
     extra = common.extra_rules()
     if extra:
         parts.append("【追加ルール】\n" + extra)
-    return "\n\n".join(parts) + FORMAT_RULES + time_note()
+    rules = FORMAT_RULES
+    if ideal_self.configured():
+        rules += ideal_self.PROTOCOL
+    return "\n\n".join(parts) + rules + time_note()
 
 
 def log(*a):
@@ -117,6 +121,19 @@ def save_state(st):
     STATE.write_text(json.dumps(st))
 
 
+def _sync_session_keys(st):
+    # 定时任务(早间新闻/夜谈)是独立进程, 会在状态文件里更新 claude 会话标记。
+    # 常驻值班员内存里的标记会过时→误判"该翻篇"另起新会话, 就看不到早间新闻了。
+    # 每次处理消息前, 把会话标记从文件同步过来(只同步 claude_*, last_id 仍归自己管)。
+    try:
+        disk = load_state()
+    except Exception:
+        return
+    for k, v in disk.items():
+        if k.startswith("claude_"):
+            st[k] = v
+
+
 def stt(path):
     r = subprocess.run([sys.executable, str(PIPE), "stt", path],
                        capture_output=True, text=True, timeout=300)
@@ -154,11 +171,12 @@ def think_with_typing(text, st):
 
 
 def split_reply(raw):
+    raw, _, ideal = raw.partition("◆理想の私")
     spoken, _, notes = raw.partition("◆メモ")
     notes = notes.strip().lstrip("：:").strip()
     if notes in ("なし", "なし。", "无", "無し", "None"):
         notes = ""
-    return spoken.strip(), notes
+    return spoken.strip(), notes, ideal.strip().lstrip("：:").strip()
 
 
 def lesson_log(user_text, spoken, notes):
@@ -175,6 +193,7 @@ def lesson_log(user_text, spoken, notes):
 
 
 def handle(m, st):
+    _sync_session_keys(st)  # 同步定时任务(早间新闻/夜谈)可能更新过的会话标记
     text = (m.get("content") or "").strip()
     images = []
     for att in m.get("attachments", []):
@@ -208,7 +227,7 @@ def handle(m, st):
                 + "\n".join(str(p) for p in images))
         ask = ask.strip()
     log("heard:", shown[:70])
-    spoken, notes = split_reply(think_with_typing(ask, st))
+    spoken, notes, ideal = split_reply(think_with_typing(ask, st))
     log("reply:", spoken[:70])
     msg = f"🎤 私：「{shown}」\n\n👩‍🏫 {TEACHER_NAME}：「{spoken}」"
     if notes:
@@ -220,6 +239,13 @@ def handle(m, st):
         send("", voice)  # 语音条随后跟上
     except Exception as e:
         log("tts failed:", e)
+    if ideal and ideal_self.configured():
+        # 理想の私: 用学生自己的声音说出改好的句子(模型冷启动时这条会晚到 1 分钟左右)
+        typing()
+        ogg = ideal_self.synth(ideal, str(INBOX / f"ideal_{m['id']}.ogg"))
+        if ogg:
+            send(f"✨ 理想の私：「{ideal}」", ogg)
+            log("ideal-self sent:", ideal[:50])
     lesson_log(shown, spoken, notes)
 
 
@@ -271,6 +297,7 @@ def main():
             # 办完一件才记一件账: 中途被杀就重做, 宁可偶尔重复不吞消息
             st["last_id"] = m["id"]
             save_state(st)
+        ideal_self.maybe_shutdown_idle()  # 克隆服务闲置超时就下班, 不占内存
         time.sleep(interval)
 
 

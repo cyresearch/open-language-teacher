@@ -22,6 +22,7 @@ An AI is a good speaking partner. She has a name, a personality, and a memory: s
 - Highly customizable. Her personality, teaching style, your language profile, textbook progress, and which voice speaks which language are all Markdown config files; save and it takes effect. That is also why it is called Open: the voices are open source, the brain can be open source, and the teacher herself is yours to customize
 - Every lesson leaves notes. New words, grammar points, and corrections go into `lessons/`, and she reads them back later
 - A nightly chat at a set hour. She asks what you did today. No homework, no streaks. If you don't answer tonight, she comes back tomorrow as usual
+- A morning news lesson. She searches the day's real news, picks one or two stories from the fields you care about, and tells them in simple target language with a native-language summary and vocabulary. The fields live in a config file; the time is yours to set
 
 ## Quick start
 
@@ -55,6 +56,16 @@ Pick the LLM in `.env` with `BRAIN_PROVIDER`:
 
 All three are legitimate access paths. This project does not work around terms of service to ride on anyone's subscription.
 
+## Hearing a more fluent you (in development)
+
+After she corrects your sentence, you hear the natural version in **your own voice**. The fluent future you is one of the strongest motivators there is (the Ideal L2 Self; Dörnyei, 2009). The AI Twin study at CHI 2026 built this first; here is a local, open-source take.
+
+- The material is the Discord voice messages you already send her. A few days of chatting is enough (I used about 30 minutes). The project slices and transcribes them; you delete bad transcripts on a review page
+- Training is a GPT-SoVITS fine-tune: minutes on a cloud GPU for under a dollar, or slower on your own CPU
+- Synthesis runs locally. Your voice never leaves your machine, and the model is yours forever, about 3.5GB
+- Want it closer: mix in a few minutes of lossless audio from iPhone Voice Memos (turn on lossless in Settings first). A good microphone helps. Material quality is the model's ceiling
+- With budget, ElevenLabs (what the AI Twin paper used) sounds better: Instant cloning speaks from under a minute of audio, from $6/month; Professional needs over an hour of material, hours of training, and a 2 to 6 hour queue when busy, from $22/month. The voice lives on their cloud and stops with the subscription
+
 ## Security
 
 See [SECURITY.md](SECURITY.md). Core principles: config is data, not code; the brain can only read and search; secrets never enter the repo; the chat channel answers you and no one else.
@@ -70,6 +81,9 @@ See [SECURITY.md](SECURITY.md). Core principles: config is data, not code; the b
 - Voices: [VOICEVOX](https://voicevox.hiroshiba.jp/) (observe each character's terms of use), [Kokoro](https://huggingface.co/hexgrad/Kokoro-82M), [MeloTTS](https://github.com/myshell-ai/MeloTTS)
 - Transcription: [mlx-whisper](https://github.com/ml-explore/mlx-examples)
 - The config-as-files design is inspired by [OpenClaw](https://openclaw.ai)
+- "Hearing a more fluent you" stands on Zoltán Dörnyei's L2 Motivational Self System (the Ideal L2 Self)
+- The voice cloning feature is inspired by Park, M., Lee, S., Ma, J., & Yoon, D. (2026). AI Twin: Enhancing ESL Speaking Practice through AI Self-Clones of a Better Me. *CHI 2026*. https://doi.org/10.1145/3772318.3790266
+- Local voice cloning engine: [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS) (MIT)
 
 ## License
 

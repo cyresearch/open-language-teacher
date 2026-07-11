@@ -22,6 +22,7 @@ AI就是很好的口语练习对象。她有名字，有性格,有记忆.你们�
 - 高度可定制。她的性格、教法、你的语言画像、教材进度、每种语言用哪把嗓子，全是 markdown 配置文件，改完保存就生效。这也是叫 Open 的原因：声音开源，大脑可以开源，老师本身也随你定制
 - 每节课自动留笔记。生词、语法点、纠错都记在 `lessons/` 里，她之后会回头看
 - 每晚定时夜谈。到点她主动来问你今天做了什么，不布置作业，也不打卡。今晚没回，她明天照常来
+- 每天早上有新闻小课。她联网现查当天的真新闻，挑你感兴趣的领域讲一两条，用简单的目标语言，配母语大意和生词。领域写在配置里，时间随你定
 
 ## 快速开始
 
@@ -55,6 +56,16 @@ repo/
 
 三条路都是正规接入，这个项目不会绕过服务条款去蹭订阅用量。
 
+## 听见更流利的自己（开发中）
+
+她纠正你的句子之后，用**你自己的声音**把地道的说法读给你听。那个「说得流利的自己」是最强的学习动力之一（Ideal L2 Self；Dörnyei, 2009）。CHI 2026 的 AI Twin 研究先做出了这件事，这里是本地开源版。
+
+- 素材就是你平时发她的 Discord 语音，聊几天就攒够（我用了约 30 分钟）。项目自动切片转写，你在审核页删掉转写错的
+- 训练用 GPT-SoVITS 微调：云 GPU 几分钟、不到一美元；本地 CPU 也行，就是慢
+- 合成全在本地跑，声音不出你的电脑。模型永远归你，占约 3.5GB
+- 想更像：用 iPhone 语音备忘录录几分钟无损音频掺进去（设置里先开无损），有好麦克风更好。素材质量就是模型上限
+- 预算充足可以用 ElevenLabs（AI Twin 论文同款），效果更好：Instant 克隆几十秒素材出声，$6/月起；Professional 档要一小时以上素材、训练数小时、忙时排队两到六小时，$22/月起。声音存在云端，停订即失效
+
 ## 安全
 
 见 [SECURITY.md](SECURITY.md)。核心原则：配置是数据不是代码；大脑只能读和搜索；密钥不入库；聊天频道只认你一个人。
@@ -70,6 +81,9 @@ repo/
 - 声音：[VOICEVOX](https://voicevox.hiroshiba.jp/)（各角色的使用条款请自行遵守）、[Kokoro](https://huggingface.co/hexgrad/Kokoro-82M)、[MeloTTS](https://github.com/myshell-ai/MeloTTS)
 - 听写：[mlx-whisper](https://github.com/ml-explore/mlx-examples)
 - 配置文件化的设计受 [OpenClaw](https://openclaw.ai) 启发
+- 「听见更流利的自己」的理论根基是 Zoltán Dörnyei 的 L2 Motivational Self System（Ideal L2 Self）
+- 声音克隆功能的实现灵感来自 Park, M., Lee, S., Ma, J., & Yoon, D. (2026). AI Twin: Enhancing ESL Speaking Practice through AI Self-Clones of a Better Me. *CHI 2026*. https://doi.org/10.1145/3772318.3790266
+- 本地声音克隆引擎：[GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS)（MIT）
 
 ## License
 

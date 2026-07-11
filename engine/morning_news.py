@@ -29,7 +29,10 @@ PROMPT = (
     "下記の生徒の興味分野から、大きなニュースを1〜2件選んで、朝の挨拶と一緒に、"
     "短く簡単な言葉で教えてあげてください。難しい言葉は簡単に言い換える。"
     "最後に、生徒が一言返したくなるような軽い問いかけを。"
-    "読み上げられるので本文は短く（4〜7文くらい）。◆メモには出てきた生词・表現を整理する。\n"
+    "読み上げられるので本文は短く（4〜7文くらい）。"
+    "◆メモには、まず【大意】として今日のニュースの内容を生徒の母語で2〜3文にまとめ"
+    "（日本語が難しくても内容が必ずわかるように）、続けて【生词】（読み方＋母語の意味）と"
+    "【表現】を整理する。\n"
     "【生徒の興味分野（config/morning-news.md より）】\n{fields}）"
 )
 
@@ -40,7 +43,7 @@ def main():
     st = dd.load_state()
     raw = dd.think(PROMPT.format(fields=news_fields()), st)
     dd.save_state(st)
-    spoken, notes = dd.split_reply(raw)
+    spoken, notes, _ = dd.split_reply(raw)
     if dry:
         print("DRY:", spoken)
         if notes:
@@ -53,7 +56,10 @@ def main():
         voice = dd.tts(spoken, ogg)
     except Exception as e:
         print("tts failed:", e)
-    dd.send(f"☀️ {spoken}", voice)
+    msg = f"☀️ {spoken}"
+    if notes:
+        msg += f"\n\n📝 **メモ**\n{notes}"  # 生词/大意随新闻一起发, 不然只写进 lessons 学生看不到
+    dd.send(msg, voice)
     dd.lesson_log("（朝のニュース、先生から）", spoken, notes)
     print("morning news sent")
 
