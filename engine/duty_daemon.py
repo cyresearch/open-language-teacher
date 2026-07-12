@@ -23,6 +23,7 @@ import common
 import ideal_self
 
 CHANNEL = common.env("DISCORD_CHANNEL_ID")
+HW_CHANNEL = common.env("HANDWRITING_CHANNEL_ID")  # 可选: 手写投递箱频道(iPad 快捷指令经 webhook 投图)
 OWNER = common.env("DISCORD_OWNER_ID")
 TOK = common.env("DISCORD_BOT_TOKEN")
 TEACHER_NAME = common.env("TEACHER_NAME", "先生")
@@ -87,7 +88,7 @@ def dget(path):
     return json.loads(r.stdout)
 
 
-def send(text, ogg=None, reply_to=None):
+def send(text, ogg=None, reply_to=None, channel=None):
     payload = {"content": text[:1900]}
     if reply_to:
         payload["message_reference"] = {"message_id": reply_to,
@@ -97,18 +98,18 @@ def send(text, ogg=None, reply_to=None):
            "-F", "payload_json=" + json.dumps(payload, ensure_ascii=False)]
     if ogg:
         cmd += ["-F", f"files[0]=@{ogg};type=audio/ogg"]
-    cmd.append(f"https://discord.com/api/v10/channels/{CHANNEL}/messages")
+    cmd.append(f"https://discord.com/api/v10/channels/{channel or CHANNEL}/messages")
     r = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
     ok = '"id"' in r.stdout
     log("send", "ok" if ok else f"FAIL {r.stdout[:120]}")
     return ok
 
 
-def typing():
+def typing(channel=None):
     # 让手机上显示「正在输入…」, 表示消息已接单 (指示器约 10 秒, 处理各阶段各点一次)
     subprocess.run(["curl", "-s", "-X", "POST", "-d", "",
                     "-H", f"Authorization: Bot {TOK}",
-                    f"https://discord.com/api/v10/channels/{CHANNEL}/typing"],
+                    f"https://discord.com/api/v10/channels/{channel or CHANNEL}/typing"],
                    capture_output=True, timeout=15)
 
 
@@ -153,15 +154,15 @@ def think(text, st):
                        tools=("WebSearch", "WebFetch", "Read"), cwd=DUTY_CWD)
 
 
-def think_with_typing(text, st):
+def think_with_typing(text, st, channel=None):
     # 思考期间每 8 秒续一次「正在输入」(指示器约 10 秒灭), 学生知道老师还在想
     stop = threading.Event()
 
     def keepalive():
         while not stop.wait(8):
-            typing()
+            typing(channel)
 
-    typing()
+    typing(channel)
     t = threading.Thread(target=keepalive, daemon=True)
     t.start()
     try:
@@ -192,14 +193,15 @@ def lesson_log(user_text, spoken, notes):
             fh.write(f"{notes}\n\n")
 
 
-def handle(m, st):
+def handle(m, st, channel=None):
+    ch = channel or CHANNEL
     _sync_session_keys(st)  # 同步定时任务(早间新闻/夜谈)可能更新过的会话标记
     text = (m.get("content") or "").strip()
     images = []
     for att in m.get("attachments", []):
         ct = att.get("content_type") or ""
         if ct.startswith("audio"):
-            typing()
+            typing(ch)
             INBOX.mkdir(parents=True, exist_ok=True)
             dst = INBOX / f"{m['id']}.ogg"
             subprocess.run(["curl", "-s", "-L", "--max-time", "60",
@@ -209,7 +211,7 @@ def handle(m, st):
                 text = (text + " " + heard).strip()
         elif ct.startswith("image") or ct == "application/pdf":
             # 手写练习/笔记照片: 存下来让大脑用 Read 亲眼看
-            typing()
+            typing(ch)
             INBOX.mkdir(parents=True, exist_ok=True)
             suffix = pathlib.Path(att.get("filename") or "").suffix or ".png"
             dst = INBOX / f"{m['id']}_{att['id']}{suffix}"
@@ -227,26 +229,63 @@ def handle(m, st):
                 + "\n".join(str(p) for p in images))
         ask = ask.strip()
     log("heard:", shown[:70])
-    spoken, notes, ideal = split_reply(think_with_typing(ask, st))
+    spoken, notes, ideal = split_reply(think_with_typing(ask, st, ch))
     log("reply:", spoken[:70])
     msg = f"🎤 私：「{shown}」\n\n👩‍🏫 {TEACHER_NAME}：「{spoken}」"
     if notes:
         msg += f"\n\n📝 **今日のメモ**\n{notes}"
-    send(msg, None, m["id"])  # 文字先行, 不等语音合成
-    typing()
+    send(msg, None, m["id"], channel=ch)  # 文字先行, 不等语音合成
+    typing(ch)
     try:
         voice = tts(spoken, str(INBOX / f"reply_{m['id']}.ogg"))
-        send("", voice)  # 语音条随后跟上
+        send("", voice, channel=ch)  # 语音条随后跟上
     except Exception as e:
         log("tts failed:", e)
     if ideal and ideal_self.configured():
         # 理想の私: 用学生自己的声音说出改好的句子(模型冷启动时这条会晚到 1 分钟左右)
-        typing()
+        typing(ch)
         ogg = ideal_self.synth(ideal, str(INBOX / f"ideal_{m['id']}.ogg"))
         if ogg:
-            send(f"✨ 理想の私：「{ideal}」", ogg)
+            send(f"✨ 理想の私：「{ideal}」", ogg, channel=ch)
             log("ideal-self sent:", ideal[:50])
     lesson_log(shown, spoken, notes)
+
+
+def drain(chan, idkey, st, allow_webhook=False):
+    """收一个频道的新消息逐条处理并记账。返回本轮是否有真消息(用于轮询提速)。
+
+    allow_webhook: 手写投递箱频道除学生本人外, 也接收 webhook 投递的消息
+    (iPad 快捷指令把 Notability 手写页经 webhook 发进来)。
+    """
+    try:
+        msgs = dget(f"/channels/{chan}/messages?after={st[idkey]}&limit=5")
+    except Exception as e:
+        log("poll error:", e)
+        return False
+    got = False
+    for m in sorted(msgs, key=lambda m: int(m["id"])):
+        mine = not m["author"].get("bot") and m["author"].get("id") == OWNER
+        hooked = allow_webhook and m.get("webhook_id")
+        if mine or hooked:
+            got = True
+            try:
+                handle(m, st, channel=chan)
+                st.pop("retry_id", None)
+                st.pop("retry_n", None)
+            except Exception as e:
+                log("handle error:", e)
+                # 失败不记账, 下轮重试; 同一条连败 3 次才放弃并告知学生
+                n = st.get("retry_n", 0) + 1 if st.get("retry_id") == m["id"] else 1
+                st.update(retry_id=m["id"], retry_n=n)
+                save_state(st)
+                if n < 3:
+                    break  # 不推进游标, 稍后重试这条
+                send("😵 这条消息连续处理失败了三次，先跳过。"
+                     "请查看 duty.log 排查。", reply_to=m["id"], channel=chan)
+        # 办完一件才记一件账: 中途被杀就重做, 宁可偶尔重复不吞消息
+        st[idkey] = m["id"]
+        save_state(st)
+    return got
 
 
 def main():
@@ -260,43 +299,25 @@ def main():
                  "或把 BRAIN_PROVIDER 换成 api / ollama")
     DUTY_CWD.mkdir(parents=True, exist_ok=True)
     st = load_state()
-    if "last_id" not in st:
-        msgs = dget(f"/channels/{CHANNEL}/messages?limit=1")
-        st["last_id"] = msgs[0]["id"] if msgs else "0"
-        save_state(st)
+    inits = [(CHANNEL, "last_id")] + ([(HW_CHANNEL, "last_id_hw")] if HW_CHANNEL else [])
+    for chan, idkey in inits:
+        if idkey not in st:
+            msgs = dget(f"/channels/{chan}/messages?limit=1")
+            st[idkey] = msgs[0]["id"] if msgs else "0"
+            save_state(st)
     if "--announce" in sys.argv:
         send(f"📻 {TEACHER_NAME}、値班室に入りました！いつでも話しかけてくださいね。")
-    log(f"on duty ({CLAUDE_MODEL}). last_id =", st["last_id"])
+    log(f"on duty ({CLAUDE_MODEL}). last_id =", st["last_id"],
+        f"| 手習い帖: {HW_CHANNEL or 'off'}")
     last_activity = time.time()
     while True:
         idle = time.time() - last_activity
         interval = 5 if idle < 600 else (10 if idle < 3600 else 20)
-        try:
-            msgs = dget(f"/channels/{CHANNEL}/messages?after={st['last_id']}&limit=5")
-        except Exception as e:
-            log("poll error:", e)
-            time.sleep(30)
-            continue
-        for m in sorted(msgs, key=lambda m: int(m["id"])):
-            if not m["author"].get("bot") and m["author"].get("id") == OWNER:
-                last_activity = time.time()
-                try:
-                    handle(m, st)
-                    st.pop("retry_id", None)
-                    st.pop("retry_n", None)
-                except Exception as e:
-                    log("handle error:", e)
-                    # 失败不记账, 下轮重试; 同一条连败 3 次才放弃并告知学生
-                    n = st.get("retry_n", 0) + 1 if st.get("retry_id") == m["id"] else 1
-                    st.update(retry_id=m["id"], retry_n=n)
-                    save_state(st)
-                    if n < 3:
-                        break  # 不推进游标, 稍后重试这条
-                    send("😵 这条消息连续处理失败了三次，先跳过。"
-                         "请查看 duty.log 排查。", reply_to=m["id"])
-            # 办完一件才记一件账: 中途被杀就重做, 宁可偶尔重复不吞消息
-            st["last_id"] = m["id"]
-            save_state(st)
+        active = drain(CHANNEL, "last_id", st)
+        if HW_CHANNEL:
+            active = drain(HW_CHANNEL, "last_id_hw", st, allow_webhook=True) or active
+        if active:
+            last_activity = time.time()
         ideal_self.maybe_shutdown_idle()  # 克隆服务闲置超时就下班, 不占内存
         time.sleep(interval)
 
