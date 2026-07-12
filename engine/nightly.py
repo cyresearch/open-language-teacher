@@ -57,7 +57,7 @@ def main():
     st = dd.load_state()
     raw = dd.think(prompt, st)
     dd.save_state(st)
-    spoken, _, _ = dd.split_reply(raw)
+    spoken, _, _, _ = dd.split_reply(raw)
     if dry:
         print("DRY:", spoken)
         return

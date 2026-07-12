@@ -59,7 +59,7 @@ def time_note():
 
 def persona():
     parts = []
-    for name in ("teacher.md", "student.md", "curriculum.md"):
+    for name in ("teacher.md", "student.md", "omoide.md", "curriculum.md"):
         try:
             parts.append((common.CONFIG / name).read_text())
         except Exception:
@@ -171,13 +171,22 @@ def think_with_typing(text, st, channel=None):
         stop.set()
 
 
+MARKERS = ("◆メモ", "◆理想の私", "◆思い出")
+
+
 def split_reply(raw):
-    raw, _, ideal = raw.partition("◆理想の私")
-    spoken, _, notes = raw.partition("◆メモ")
-    notes = notes.strip().lstrip("：:").strip()
+    # 三个块顺序不定(人设与协议各有偏好), 按出现位置切, 谁先谁后都能拆对
+    found = sorted((raw.find(m), m) for m in MARKERS if raw.find(m) != -1)
+    spoken = raw[:found[0][0]] if found else raw
+    parts = {}
+    for k, (pos, m) in enumerate(found):
+        end = found[k + 1][0] if k + 1 < len(found) else len(raw)
+        parts[m] = raw[pos + len(m):end].strip().lstrip("：:").strip()
+    notes = parts.get("◆メモ", "")
     if notes in ("なし", "なし。", "无", "無し", "None"):
         notes = ""
-    return spoken.strip(), notes, ideal.strip().lstrip("：:").strip()
+    return (spoken.strip(), notes,
+            parts.get("◆理想の私", ""), parts.get("◆思い出", ""))
 
 
 def lesson_log(user_text, spoken, notes):
@@ -229,7 +238,7 @@ def handle(m, st, channel=None):
                 + "\n".join(str(p) for p in images))
         ask = ask.strip()
     log("heard:", shown[:70])
-    spoken, notes, ideal = split_reply(think_with_typing(ask, st, ch))
+    spoken, notes, ideal, omoide = split_reply(think_with_typing(ask, st, ch))
     log("reply:", spoken[:70])
     msg = f"🎤 私：「{shown}」\n\n👩‍🏫 {TEACHER_NAME}：「{spoken}」"
     if notes:
@@ -248,6 +257,14 @@ def handle(m, st, channel=None):
         if ogg:
             send(f"✨ 理想の私：「{ideal}」", ogg, channel=ch)
             log("ideal-self sent:", ideal[:50])
+    if omoide:
+        # 思い出帳: 老师点名要记住的事, 由值班员代笔落盘(大脑保持只读)
+        f = common.CONFIG / "omoide.md"
+        if not f.exists():
+            f.write_text("# 思い出帳\n\n> 老师的 ◆思い出 块由值班员自动写入这里, 手动整理也可以。\n\n")
+        with f.open("a") as fh:
+            fh.write(f"- {common.now_local().strftime('%Y-%m-%d')}: {omoide}\n")
+        log("omoide +", omoide[:40])
     lesson_log(shown, spoken, notes)
 
 

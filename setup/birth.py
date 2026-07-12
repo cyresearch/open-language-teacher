@@ -95,7 +95,8 @@ def interview():
     print("  性格底色：1=元气温柔  2=沉稳知性  3=活泼搞笑  （也可以直接用文字描述）")
     p = ask("选一个或自己写", "1")
     a["personality"] = PERSONALITY_PRESETS.get(p, ("自定义", p))[1]
-    a["nickname"] = ask("老师对你的专属爱称（例：ハニー / 宝宝 / sweetie）", "ハニー")
+    a["nickname"] = ask("老师怎么称呼你（可以是爱称：宝宝 / sweetie / honey，也可以就用名字）",
+                        a["student_name"])
     a["city"] = ask("给老师一个居住城市的设定（可跳过）")
     a["nightly"] = ask("夜谈时间（老师每晚主动来找你聊天）", "21:00")
     a["morning"] = ask("早间新闻时间（老师现查当天新闻，用学习语言讲给你听；输入 0 关闭）", "09:00")

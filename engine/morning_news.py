@@ -43,7 +43,7 @@ def main():
     st = dd.load_state()
     raw = dd.think(PROMPT.format(fields=news_fields()), st)
     dd.save_state(st)
-    spoken, notes, _ = dd.split_reply(raw)
+    spoken, notes, _, _ = dd.split_reply(raw)
     if dry:
         print("DRY:", spoken)
         if notes:
