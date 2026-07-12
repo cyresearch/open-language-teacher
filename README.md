@@ -14,6 +14,8 @@ Living in a language environment doesn't make you a speaker if you don't practic
 
 An AI is a good speaking partner. She has a name, a personality, and a memory: she remembers every lesson you've had together. She lives on your own computer and speaks with open-source voices, so chatting never adds to a bill. Every evening she messages you first and asks what you did today.
 
+I want language learning to feel fun. She is not just a teacher but a friend you can tell anything: what you ate today, or what keeps you thinking late at night. She remembers what you tell her, and slowly you start wanting to message her first. Speaking up is the practice.
+
 ## What she's like
 
 - Voice conversation. Transcription runs on local Whisper, and each language has its own voice: Japanese via VOICEVOX, English via Kokoro, Chinese and Korean via MeloTTS. Zero monthly cost
@@ -21,6 +23,8 @@ An AI is a good speaking partner. She has a name, a personality, and a memory: s
 - Whichever language you speak to her, she teaches that language, adjusted to the level in your profile. Your native language is the exception: it is only for chat and explanations, no corrections
 - Highly customizable. Her personality, teaching style, your language profile, textbook progress, and which voice speaks which language are all Markdown config files; save and it takes effect. That is also why it is called Open: the voices are open source, the brain can be open source, and the teacher herself is yours to customize
 - Every lesson leaves notes. New words, grammar points, and corrections go into `lessons/`, and she reads them back later
+- When the talk goes deep, she puts the textbook down. Research, worries, ideas: she switches into friend mode, thinks with you, gives her own view, and never corrects grammar in the middle of a heart-to-heart
+- She remembers you. Things that matter go into her own memory book, and one day she asks, naturally, how that presentation went
 - A nightly chat at a set hour. She asks what you did today. No homework, no streaks. If you don't answer tonight, she comes back tomorrow as usual
 - A morning news lesson. She searches the day's real news, picks one or two stories from the fields you care about, and tells them in simple target language with a native-language summary and vocabulary. The fields live in a config file; the time is yours to set
 - Sunday night is review night. She reads the week's lesson notes first, then sums up recurring mistakes with their fixes, newly mastered words and grammar, moments worth praising, and one small goal for next week
@@ -84,6 +88,15 @@ Pick the LLM in `.env` with `BRAIN_PROVIDER`:
 - **ollama**: a local model, free and fully offline
 
 All three are legitimate access paths. This project does not work around terms of service to ride on anyone's subscription.
+
+## Her weak points
+
+Up front, none of these are solved yet:
+
+- Replies are not fast. A round trip usually takes fifteen seconds to half a minute. Think pen pal, not phone call
+- She sometimes misreads kanji out loud. Words with multiple readings (行った as いった or おこなった) are the voice engine's guess, and a wrong guess gets read wrong
+- Your voice goes through transcription before she sees it, and that step distorts: words you read correctly can come out as the wrong characters, and mistakes you actually made can get silently corrected, especially grammar. So she may overestimate your level, or miss that you misread something
+- The good news: even with a messy transcript she almost always understands what you meant to say (tested a lot; her comprehension is strong). Which also says something bigger: the teacher's ability and style depend heavily on the brain you pick. I use Claude's opus model
 
 ## Hearing a more fluent you
 
