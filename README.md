@@ -56,7 +56,7 @@ Pick the LLM in `.env` with `BRAIN_PROVIDER`:
 
 All three are legitimate access paths. This project does not work around terms of service to ride on anyone's subscription.
 
-## Hearing a more fluent you (in development)
+## Hearing a more fluent you
 
 After she corrects your sentence, you hear the natural version in **your own voice**. The fluent future you is one of the strongest motivators there is (the Ideal L2 Self; Dörnyei, 2009). The AI Twin study at CHI 2026 built this first; here is a local, open-source take.
 
