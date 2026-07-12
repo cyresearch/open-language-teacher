@@ -46,6 +46,34 @@ repo/
   lessons/           ← your lesson logs (auto-generated, never committed)
 ```
 
+## Resource footprint
+
+Measured on a 16GB Mac mini (M4).
+
+Disk: about 11GB with all four languages, about 15GB with voice cloning:
+
+| Component | Size |
+|---|---|
+| Main environment (transcription and synthesis runtimes) | 1.2GB |
+| Whisper transcription model | 1.5GB |
+| Japanese voice, VOICEVOX | 2.0GB |
+| English voice, Kokoro | 0.3GB |
+| Chinese voice, MeloTTS | 3.3GB |
+| Korean voice, MeloTTS | 2.6GB |
+| Voice cloning, GPT-SoVITS (optional) | 3.5GB |
+
+Memory. The teacher stays online around the clock, but little stays resident:
+
+- Resident: the duty daemon (tiny), the Japanese engine VOICEVOX (about 0.8GB), and Chinese/Korean MeloTTS (about 1.3GB each; skip them if you don't learn those)
+- Transcription and English synthesis load on demand and exit after use, adding about 1.5GB at peak while she speaks
+- The voice cloning server starts only when needed (about 3GB) and exits after ten minutes idle
+- Japanese only: about 1GB resident. All four languages: about 3.5GB. A 16GB machine handles either
+
+Online fallback:
+
+- Every language has a Microsoft online voice (edge-tts) as fallback. It steps in when a local engine fails or isn't installed, so she never goes mute
+- The fallback needs internet, sounds different from the local voice, and sends that sentence's text to Microsoft's service. If you mind, don't install edge-tts; the fallback simply stays off and everything else works
+
 ## The brain
 
 Pick the LLM in `.env` with `BRAIN_PROVIDER`:
