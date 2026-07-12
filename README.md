@@ -23,6 +23,7 @@ An AI is a good speaking partner. She has a name, a personality, and a memory: s
 - Every lesson leaves notes. New words, grammar points, and corrections go into `lessons/`, and she reads them back later
 - A nightly chat at a set hour. She asks what you did today. No homework, no streaks. If you don't answer tonight, she comes back tomorrow as usual
 - A morning news lesson. She searches the day's real news, picks one or two stories from the fields you care about, and tells them in simple target language with a native-language summary and vocabulary. The fields live in a config file; the time is yours to set
+- Sunday night is review night. She reads the week's lesson notes first, then sums up recurring mistakes with their fixes, newly mastered words and grammar, moments worth praising, and one small goal for next week
 
 ## Quick start
 

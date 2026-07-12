@@ -350,7 +350,8 @@ def main():
     (cfg / "student.md").write_text(build_student_md(a))
     if a["morning"]:
         (cfg / "morning-news.md").write_text(build_morning_news_md(a))
-    for name in ("curriculum.md", "evening-chat.md", "voices.md", "protocol.md"):
+    for name in ("curriculum.md", "evening-chat.md", "weekly-review.md",
+                 "voices.md", "protocol.md"):
         src = EXAMPLES / name
         if src.exists() and not (cfg / name).exists():
             (cfg / name).write_text(src.read_text())
