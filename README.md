@@ -88,7 +88,7 @@ All three are legitimate access paths. This project does not work around terms o
 
 After she corrects your sentence, you hear the natural version in **your own voice**. The fluent future you is one of the strongest motivators there is (the Ideal L2 Self; Dörnyei, 2009). The AI Twin study at CHI 2026 built this first; here is a local, open-source take.
 
-- The material is the Discord voice messages you already send her. A few days of chatting is enough (I used about 30 minutes). The project slices and transcribes them; you delete bad transcripts on a review page
+- The material is the Discord voice messages you already send her. A few days of chatting is enough. The project slices and transcribes them; you delete bad transcripts on a review page
 - Training is a GPT-SoVITS fine-tune: minutes on a cloud GPU for under a dollar, or slower on your own CPU
 - Synthesis runs locally. Your voice never leaves your machine, and the model is yours forever, about 3.5GB
 - Want it closer: mix in a few minutes of lossless audio from iPhone Voice Memos (turn on lossless in Settings first). A good microphone helps. Material quality is the model's ceiling
