@@ -255,13 +255,24 @@ def handle(m, st, channel=None):
         send("", voice, channel=ch)  # 语音条随后跟上
     except Exception as e:
         log("tts failed:", e)
-    if ideal and ideal_self.configured():
-        # 理想の私: 用学生自己的声音说出改好的句子(模型冷启动时这条会晚到 1 分钟左右)
-        typing(ch)
-        ogg = ideal_self.synth(ideal, str(INBOX / f"ideal_{m['id']}.ogg"))
-        if ogg:
-            send(f"✨ 理想の私：「{ideal}」", ogg, channel=ch)
-            log("ideal-self sent:", ideal[:50])
+    if ideal_self.configured():
+        if not ideal:
+            # 协议要求每轮必出块; 老师漏了就在同一会话里补要一次(只取块, 正文不上屏)
+            log("ideal-self missing, repair call")
+            raw = think("（システム：さっきの返事に◆理想の私ブロックが無かった。"
+                        "生徒の直前の発話について、◆理想の私ブロックだけを出力して。"
+                        "生徒のメッセージに言葉が無かった場合は、ブロックの中身を"
+                        "「なし」とだけ書いて。）", st)
+            _, _, ideal, _ = split_reply(raw)
+            if ideal in ("なし", "なし。", "无", "None"):
+                ideal = ""
+        if ideal:
+            # 理想の私: 用学生自己的声音说出改好的句子(模型冷启动时这条会晚到 1 分钟左右)
+            typing(ch)
+            ogg = ideal_self.synth(ideal, str(INBOX / f"ideal_{m['id']}.ogg"))
+            if ogg:
+                send(f"✨ 理想の私：「{ideal}」", ogg, channel=ch)
+                log("ideal-self sent:", ideal[:50])
     if omoide:
         # 思い出帳: 老师点名要记住的事, 由值班员代笔落盘(大脑保持只读)
         f = common.CONFIG / "omoide.md"

@@ -100,7 +100,7 @@ Up front, none of these are solved yet:
 
 ## 🪞 Hearing a more fluent you
 
-After she corrects your sentence, you hear the natural version in **your own voice**. The fluent future you is one of the strongest motivators there is (the Ideal L2 Self; Dörnyei, 2009). The AI Twin study at CHI 2026 built this first; here is a local, open-source take.
+At the end of every exchange, you hear **your own voice** say the natural version of what you meant: corrected if it was off, kept as is if it was already good, and rendered into Japanese if you said it in your first language. The fluent future you is one of the strongest motivators there is (the Ideal L2 Self; Dörnyei, 2009). The AI Twin study at CHI 2026 built this first; here is a local, open-source take.
 
 - **The material costs nothing.** It is the Discord voice messages you already send her; a few days of chatting is enough. The project slices and transcribes them, and you delete bad transcripts on a review page
 - **Training is cheap.** A GPT-SoVITS fine-tune takes minutes on a cloud GPU for **under a dollar**, or runs slower on your own CPU
