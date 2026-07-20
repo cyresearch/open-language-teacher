@@ -89,19 +89,24 @@ def dget(path):
 
 
 def send(text, ogg=None, reply_to=None, channel=None):
-    payload = {"content": text[:1900]}
-    if reply_to:
-        payload["message_reference"] = {"message_id": reply_to,
-                                        "fail_if_not_exists": False}
-    cmd = ["curl", "-s", "--max-time", "30",
-           "-H", f"Authorization: Bot {TOK}",
-           "-F", "payload_json=" + json.dumps(payload, ensure_ascii=False)]
-    if ogg:
-        cmd += ["-F", f"files[0]=@{ogg};type=audio/ogg"]
-    cmd.append(f"https://discord.com/api/v10/channels/{channel or CHANNEL}/messages")
-    r = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-    ok = '"id"' in r.stdout
-    log("send", "ok" if ok else f"FAIL {r.stdout[:120]}")
+    # 长文本分条发（Discord 单条上限 2000）：老师的长回复不再被截没；空文本也发一条（只带语音条时）
+    chunks = [text[i:i + 1900] for i in range(0, len(text), 1900)] or [""]
+    ok = True
+    for i, chunk in enumerate(chunks):
+        payload = {"content": chunk}
+        if reply_to and i == 0:
+            payload["message_reference"] = {"message_id": reply_to,
+                                            "fail_if_not_exists": False}
+        cmd = ["curl", "-s", "--max-time", "30",
+               "-H", f"Authorization: Bot {TOK}",
+               "-F", "payload_json=" + json.dumps(payload, ensure_ascii=False)]
+        if ogg and i == len(chunks) - 1:  # 语音条附在最后一条
+            cmd += ["-F", f"files[0]=@{ogg};type=audio/ogg"]
+        cmd.append(f"https://discord.com/api/v10/channels/{channel or CHANNEL}/messages")
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        this_ok = '"id"' in r.stdout
+        log("send", "ok" if this_ok else f"FAIL {r.stdout[:120]}")
+        ok = ok and this_ok
     return ok
 
 
