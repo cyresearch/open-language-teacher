@@ -224,6 +224,9 @@ def split_sentences(text):
 
 def tts(text, out_path):
     import numpy as np
+    # 语音合成前清掉 markdown 记号（否则 ** * # ` 之类会被念成"星号"）
+    text = re.sub(r"\*\*|__|\*|_|`+|#+", "", text)
+    text = re.sub(r"(?m)^[ \t]*[-+]\s+", "", text)
     voices = load_voices()
     pieces = []
     gap = np.zeros(int(SR * 0.18), dtype="f4")
