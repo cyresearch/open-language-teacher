@@ -329,7 +329,7 @@ def main():
     if brain.PROVIDER == "claude-code" and not (common.env("CLAUDE_BIN")
                                                 or shutil.which("claude")):
         sys.exit("找不到 claude 命令：装 Claude Code、在 .env 配 CLAUDE_BIN，"
-                 "或把 BRAIN_PROVIDER 换成 api / ollama")
+                 "或把 BRAIN_PROVIDER 换成 api / ollama / openai-compat")
     DUTY_CWD.mkdir(parents=True, exist_ok=True)
     st = load_state()
     inits = [(CHANNEL, "last_id")] + ([(HW_CHANNEL, "last_id_hw")] if HW_CHANNEL else [])

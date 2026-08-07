@@ -113,6 +113,7 @@ def pick_brain():
     print(f"  1 = Claude Code{'（检测到已安装，推荐：功能最全）' if has_claude else '（未检测到）'}")
     print("  2 = Anthropic API key（自备 key）")
     print("  3 = Ollama 本地模型（零成本全离线）")
+    print("  4 = Gemini / OpenAI 等兼容 API（自备 key）")
     choice = ask("选哪条通道", "1" if has_claude else "3")
     env = {}
     if choice == "2":
@@ -129,6 +130,21 @@ def pick_brain():
         except Exception:
             print("  ⚠ 没探测到 Ollama 在跑（http://127.0.0.1:11434）——先去 ollama.com 装好")
         env["OLLAMA_MODEL"] = ask("用哪个模型", "qwen3")
+    elif choice == "4":
+        env["BRAIN_PROVIDER"] = "openai-compat"
+        print("  平台预设：1=Gemini  2=OpenAI  3=其他兼容端点")
+        preset = ask("选平台", "1")
+        if preset == "1":
+            env["OPENAI_COMPAT_URL"] = \
+                "https://generativelanguage.googleapis.com/v1beta/openai"
+            env["OPENAI_COMPAT_MODEL"] = ask("模型", "gemini-2.5-flash")
+        elif preset == "2":
+            env["OPENAI_COMPAT_URL"] = "https://api.openai.com/v1"
+            env["OPENAI_COMPAT_MODEL"] = ask("模型", "gpt-4o-mini")
+        else:
+            env["OPENAI_COMPAT_URL"] = ask("Base URL（OpenAI 兼容端点，通常以 /v1 结尾）")
+            env["OPENAI_COMPAT_MODEL"] = ask("模型名")
+        env["OPENAI_COMPAT_KEY"] = ask("粘贴你的 API key")
     else:
         env["BRAIN_PROVIDER"] = "claude-code"
         if not has_claude:

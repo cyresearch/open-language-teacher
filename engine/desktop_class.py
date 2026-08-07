@@ -147,7 +147,7 @@ def main():
     if brain.PROVIDER == "claude-code" and not (common.env("CLAUDE_BIN")
                                                 or shutil.which("claude")):
         sys.exit("找不到 claude 命令：装 Claude Code、在 .env 配 CLAUDE_BIN，"
-                 "或把 BRAIN_PROVIDER 换成 api / ollama")
+                 "或把 BRAIN_PROVIDER 换成 api / ollama / openai-compat")
     ensure_engine()
     out_dev = resolve_output_device(
         force_pick=(len(sys.argv) > 1 and sys.argv[1] == "device"))

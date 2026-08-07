@@ -5,8 +5,10 @@
                会话记忆走 --continue，且支持 WebSearch/Read 工具）
   api          你自己的 Anthropic API key（无工具；会话记忆走本地滚动历史）
   ollama       本地模型（零成本全离线；无工具；会话记忆走本地滚动历史）
+  openai-compat  任何 OpenAI 兼容 API（Gemini / OpenAI / DeepSeek 等；
+               无工具；会话记忆走本地滚动历史）
 
-本项目绝不做任何「订阅搭车」式第三方接入——三条通道全部是正规门。
+本项目绝不做任何「订阅搭车」式第三方接入——四条通道全部是正规门。
 """
 import datetime
 import json
@@ -32,6 +34,8 @@ def think(text, persona, *, session="duty", st=None, model=None,
             return _api(text, persona, session) or FALLBACK_REPLY
         if PROVIDER == "ollama":
             return _ollama(text, persona, session) or FALLBACK_REPLY
+        if PROVIDER in ("openai-compat", "gemini"):
+            return _openai_compat(text, persona, session) or FALLBACK_REPLY
         return _claude_code(text, persona, session, st, model, tools, cwd) \
             or FALLBACK_REPLY
     except Exception as e:
@@ -124,6 +128,27 @@ def _api(text, persona, session):
         {"x-api-key": key, "anthropic-version": "2023-06-01"})
     reply = "".join(b.get("text", "") for b in out.get("content", [])
                     if b.get("type") == "text").strip()
+    if reply:
+        _save_hist(session, hist + [{"role": "assistant", "content": reply}])
+    return reply
+
+
+# ---------- 通道 4：OpenAI 兼容 API（Gemini / OpenAI / DeepSeek 等） ----------
+
+def _openai_compat(text, persona, session):
+    base = common.env("OPENAI_COMPAT_URL")
+    key = common.env("OPENAI_COMPAT_KEY")
+    if not base or not key:
+        raise RuntimeError("BRAIN_PROVIDER=openai-compat 需要在 .env 配 "
+                           "OPENAI_COMPAT_URL 和 OPENAI_COMPAT_KEY")
+    model = common.env("OPENAI_COMPAT_MODEL", "gemini-2.5-flash")
+    hist = _load_hist(session) + [{"role": "user", "content": text}]
+    out = _post_json(
+        base.rstrip("/") + "/chat/completions",
+        {"model": model,
+         "messages": [{"role": "system", "content": persona}] + hist},
+        {"Authorization": f"Bearer {key}"})
+    reply = (out.get("choices") or [{}])[0].get("message", {})         .get("content", "").strip()
     if reply:
         _save_hist(session, hist + [{"role": "assistant", "content": reply}])
     return reply
