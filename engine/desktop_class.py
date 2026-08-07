@@ -123,6 +123,23 @@ def think(text):
                        cwd=pathlib.Path(__file__).resolve().parent)
 
 
+MARKERS = ("◆メモ", "◆理想の私", "◆思い出")
+
+
+def split_spoken(reply):
+    """口语部分（进 TTS）与 ◆ 笔记部分（只显示、只记录）分离。
+
+    メモ里常有母语解释，混进日文声优会念成磕巴的怪话——
+    写给眼睛的不进耳朵（duty_daemon 同款约定，电脑课版）。
+    """
+    cut = len(reply)
+    for m in MARKERS:
+        i = reply.find(m)
+        if i != -1:
+            cut = min(cut, i)
+    return reply[:cut].strip(), reply[cut:].strip()
+
+
 def speak(text, device=None):
     first_audio_at = None
     pending = False
@@ -178,7 +195,8 @@ def main():
             reply = think(user_text)
             t2 = time.time()
             print(f"先生: {reply}")
-            first_audio_at = speak(reply, out_dev)
+            spoken, notes = split_spoken(reply)
+            first_audio_at = speak(spoken or reply, out_dev)
             t3 = time.time()
             lag = (first_audio_at - t2) if first_audio_at else (t3 - t2)
             print(f"   [听写 {t1-t0:.1f}s · 思考 {t2-t1:.1f}s · 开口 {lag:.1f}s]")
